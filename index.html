@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Turnos de Seguridad</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0d0c1d; /* Dark background color */
+            color: #e2e8f0; /* Light text color */
+        }
+        /* Custom styles for the app's color palette */
+        :root {
+            --primary-dark: #0f172a;
+            --secondary-gray: #f1f5f9;
+            --accent-orange: #f97316;
+            --accent-green: #22c55e;
+            --text-white: #ffffff;
+            --text-dark: #1e293b;
+            --social-google: #db4437;
+            --social-linkedin: #0e76a8;
+            --social-facebook: #3b5998;
+            --puesto-registro: #6366f1; /* Indigo */
+            --puesto-entrada: #facc15; /* Yellow */
+            --puesto-sotano: #ef4444; /* Red */
+            --puesto-hall: #8b5cf6; /* Violet */
+            --puesto-cubiculo: #22d3ee; /* Cyan */
+            --puesto-esclusa: #fb923c; /* Orange */
+            --puesto-cctv: #14b8a6; /* Teal */
+            --puesto-libre: #a0aec0; /* Gray */
+        }
+        .bg-primary-dark { background-color: var(--primary-dark); }
+        .text-primary-dark { color: var(--primary-dark); }
+        .bg-secondary-gray { background-color: var(--secondary-gray); }
+        .text-accent-orange { color: var(--accent-orange); }
+        .bg-accent-orange { background-color: var(--accent-orange); }
+        .bg-accent-green { background-color: var(--accent-green); }
+
+        .gradient-button {
+            background-image: linear-gradient(to right, #6d28d9, #10b981);
+            transition: all 0.3s ease;
+        }
+        .gradient-button:hover {
+            opacity: 0.9;
+        }
+
+        .icon-gradient {
+            background-image: linear-gradient(to bottom, #a78bfa, #10b981);
+        }
+
+        .scrolling-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+        .scrolling-wrapper::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 10px;
+        }
+        .scrolling-wrapper::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 10px;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.5);
+        }
+
+        .puesto-registro { background-color: var(--puesto-registro); }
+        .puesto-entrada { background-color: var(--puesto-entrada); }
+        .puesto-sotano { background-color: var(--puesto-sotano); }
+        .puesto-hall { background-color: var(--puesto-hall); }
+        .puesto-cubiculo { background-color: var(--puesto-cubiculo); }
+        .puesto-esclusa { background-color: var(--puesto-esclusa); }
+        .puesto-cctv { background-color: var(--puesto-cctv); }
+        .puesto-libre { background-color: var(--puesto-libre); }
+
+        /* Custom styles for the admin calendar */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 1fr repeat(7, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            color: #9ca3af;
+        }
+
+        .calendar-cell {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #374151;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            font-size: 0.875rem;
+        }
+
+        .calendar-guard-info {
+            background-color: #1f2937;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #374151;
+        }
+        
+        /* Styles for the new monthly calendar */
+        .monthly-calendar-day {
+            border: 1px solid #374151;
+            transition: background-color 0.2s;
+        }
+        .monthly-calendar-day.is-today {
+            background-color: #6d28d9;
+            color: white;
+        }
+        .monthly-calendar-day.is-payday {
+            background-color: var(--accent-green);
+            color: white;
+            font-weight: bold;
+        }
+        .monthly-calendar-day.is-event {
+            background-color: var(--accent-orange);
+            color: white;
+            position: relative;
+        }
+        .monthly-calendar-day.is-event::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: white;
+        }
+    </style>
+</head>
+<body class="bg-[#0d0c1d]">
+
+<!-- Main container for all screens -->
+<div id="app-container" class="min-h-screen flex flex-col">
+
+    <!-- 1. Login Screen -->
+    <div id="login-screen" class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-[#1a1836] p-8 md:p-12 rounded-3xl shadow-2xl max-w-sm w-full border border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <div class="icon-gradient w-16 h-16 rounded-full flex items-center justify-center text-white text-3xl opacity-90">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center border border-gray-600 text-yellow-300">
+                    <i class="fas fa-sun"></i>
+                </div>
+            </div>
+            
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white">Iniciar Sesión</h1>
+                <p class="text-gray-400 text-sm mt-1">Accede a tu cuenta</p>
+            </div>
+            
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+                    <input type="text" id="email" placeholder="usuario@gmail.com" class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-purple-500">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+                    <div class="relative">
+                        <input type="password" id="password" placeholder="************" class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white pr-10 focus:ring-purple-500">
+                        <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="text-right mt-2">
+                        <a href="#" class="text-purple-400 hover:underline text-sm font-medium">¿Olvidaste tu contraseña?</a>
+                    </div>
+                </div>
+                <button type="submit" class="w-full text-white py-3 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg gradient-button">Iniciar Sesión</button>
+            </form>
+            <div id="error-message" class="text-center text-red-500 text-sm mt-4 hidden">
+                Usuario o contraseña incorrectos. Intenta de nuevo.
+            </div>
+            
+            <div class="text-center my-6 text-gray-500">O CONTINÚA CON</div>
+            <div class="flex justify-center space-x-4 mb-6">
+                <button id="google-login" class="w-12 h-12 rounded-full bg-[#db4437] text-white flex items-center justify-center shadow-lg"><i class="fab fa-google"></i></button>
+                <button id="linkedin-login" class="w-12 h-12 rounded-full bg-[#0e76a8] text-white flex items-center justify-center shadow-lg"><i class="fab fa-linkedin-in"></i></button>
+                <button id="facebook-login" class="w-12 h-12 rounded-full bg-[#3b5998] text-white flex items-center justify-center shadow-lg"><i class="fab fa-facebook-f"></i></button>
+            </div>
+            
+            <div class="text-center mt-4">
+                <span class="text-gray-500 text-sm">¿No tienes una cuenta?</span>
+                <a href="#" id="show-register-link" class="text-purple-400 hover:underline text-sm font-semibold ml-1">Regístrate</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Screen -->
+    <div id="register-screen" class="hidden relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-[#1a1836] p-8 md:p-12 rounded-3xl shadow-2xl max-w-sm w-full border border-gray-700">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white">Crear Cuenta</h1>
+                <p class="text-gray-400 text-sm mt-1">Regístrate para empezar</p>
+            </div>
+            
+            <form id="register-form" class="space-y-6">
+                 <div>
+                    <label for="register-name" class="block text-sm font-medium text-gray-400 mb-1">Nombre Completo</label>
+                    <input type="text" id="register-name" placeholder="Tu Nombre" class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-purple-500" required>
+                </div>
+                <div>
+                    <label for="register-email" class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+                    <input type="email" id="register-email" placeholder="usuario@gmail.com" class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-purple-500" required>
+                </div>
+                <div>
+                    <label for="register-password" class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+                    <input type="password" id="register-password" placeholder="************" class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-purple-500" required>
+                </div>
+                <button type="submit" class="w-full text-white py-3 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg gradient-button">Registrarse</button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <span class="text-gray-500 text-sm">¿Ya tienes una cuenta?</span>
+                <a href="#" id="show-login-link" class="text-purple-400 hover:underline text-sm font-semibold ml-1">Inicia Sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden flex-1 flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <aside class="md:w-64 bg-primary-dark text-white p-6 flex flex-col h-full md:h-screen">
+            <div class="flex items-center mb-8">
+                <i class="fas fa-user-shield text-3xl text-accent-orange mr-3"></i>
+                <h2 class="text-xl font-bold">Admin</h2>
+            </div>
+            <nav>
+                <ul class="space-y-2">
+                    <li><a href="#" data-view="admin-home" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-home w-6 mr-3"></i>Inicio</a></li>
+                    <li><a href="#" data-view="shift-management" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-calendar-alt w-6 mr-3"></i>Gestión de Turnos</a></li>
+                    <li><a href="#" data-view="stats" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-chart-line w-6 mr-3"></i>Estadísticas</a></li>
+                    <li><a href="#" data-view="work-calendar" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-calendar-day w-6 mr-3"></i>Calendario Laboral</a></li>
+                    <li><a href="#" data-view="role-view" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-file-excel w-6 mr-3"></i>Vista Rol (Excel)</a></li>
+                    <li><a href="#" data-view="notifications" class="nav-link-admin flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors relative"><i class="fas fa-bell w-6 mr-3"></i>Notificaciones<span class="absolute right-3 top-1 text-xs bg-red-500 rounded-full px-1.5 py-0.5">3</span></a></li>
+                </ul>
+            </nav>
+            <div class="mt-auto pt-8">
+                <button id="logout-admin" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-sign-out-alt w-6 mr-3"></i>Cerrar Sesión</button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:p-10 overflow-auto bg-[#1a1836]">
+            <header class="flex items-center justify-between pb-6 border-b border-gray-700">
+                <h1 class="text-3xl font-bold text-white">Dashboard de Administrador</h1>
+                <div class="text-sm text-gray-500 hidden md:block" id="current-date-time"></div>
+            </header>
+            
+            <!-- Admin content area -->
+            <div id="admin-content" class="mt-8 grid gap-8">
+                <!-- Admin Home view (default) -->
+                <div id="admin-home-view">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-[#1a1836] p-6 rounded-2xl shadow-md border border-gray-700 border-t-4 border-accent-orange">
+                            <h3 class="text-lg font-semibold text-gray-400 mb-2">Horas Trabajadas</h3>
+                            <p class="text-4xl font-bold text-white">160<span class="text-lg font-normal text-gray-500">/semana</span></p>
+                            <p class="mt-2 text-sm text-gray-500">225/mes, 2500/año</p>
+                        </div>
+                        <div class="bg-[#1a1836] p-6 rounded-2xl shadow-md border border-gray-700 border-t-4 border-accent-orange">
+                            <h3 class="text-lg font-semibold text-gray-400 mb-2">Cumplimiento</h3>
+                            <p class="text-4xl font-bold text-white">95%</p>
+                            <p class="mt-2 text-sm text-gray-500">Objetivo: 100%</p>
+                        </div>
+                        <div class="bg-[#1a1836] p-6 rounded-2xl shadow-md border border-gray-700 border-t-4 border-accent-orange">
+                            <h3 class="text-lg font-semibold text-gray-400 mb-2">Días Libres</h3>
+                            <p class="text-4xl font-bold text-white">4</p>
+                            <p class="mt-2 text-sm text-gray-500">restantes esta semana</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Statistics view -->
+                <div id="stats-view" class="hidden">
+                    <div class="flex items-center overflow-x-auto scrolling-wrapper space-x-4 mb-8">
+                        <button data-stats-view="year" class="stats-button bg-primary-dark text-white px-6 py-3 rounded-full font-semibold whitespace-nowrap">Año</button>
+                        <button data-stats-view="month" class="stats-button bg-gray-800 text-white px-6 py-3 rounded-full font-semibold border border-gray-700 whitespace-nowrap">Mes</button>
+                        <button data-stats-view="day" class="stats-button bg-gray-800 text-white px-6 py-3 rounded-full font-semibold border border-gray-700 whitespace-nowrap">Día</button>
+                    </div>
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Estadísticas Detalladas de Horas de Trabajo</h3>
+                        <div id="detailed-stats-content" class="min-h-64 flex items-center justify-center text-gray-400">
+                            <!-- Content will be injected here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Shift Management view -->
+                <div id="shift-management-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700 mb-8">
+                        <h3 class="text-xl font-bold text-white mb-4">Añadir Actividad Especial</h3>
+                        <form id="add-event-form" class="flex flex-col md:flex-row gap-4">
+                            <input type="date" id="event-date" class="bg-gray-800 border border-gray-700 text-white rounded-lg p-2 flex-grow" required>
+                            <input type="text" id="event-title" placeholder="Descripción de la actividad" class="bg-gray-800 border border-gray-700 text-white rounded-lg p-2 flex-grow" required>
+                            <button type="submit" class="bg-accent-orange text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-600 transition-colors">Añadir</button>
+                        </form>
+                        <div id="event-confirmation" class="text-green-400 mt-2 hidden">¡Actividad añadida!</div>
+                    </div>
+
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-white">Calendario Semanal General</h3>
+                            <button class="bg-accent-green text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors">Sugerir Turnos</button>
+                        </div>
+                        <div id="shift-calendar-container" class="calendar-grid text-white">
+                            <!-- Shift calendar will be generated here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Admin Work Calendar view -->
+                <div id="work-calendar-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Calendario Laboral Detallado</h3>
+                        <div class="text-gray-400">Aquí se mostraría un calendario mensual con los turnos de todos los guardias. (Simulado)</div>
+                        <div class="grid grid-cols-7 gap-2 mt-4 text-center">
+                            <div class="text-sm font-bold text-gray-500">Lun</div>
+                            <div class="text-sm font-bold text-gray-500">Mar</div>
+                            <div class="text-sm font-bold text-gray-500">Mié</div>
+                            <div class="text-sm font-bold text-gray-500">Jue</div>
+                            <div class="text-sm font-bold text-gray-500">Vie</div>
+                            <div class="text-sm font-bold text-gray-500">Sáb</div>
+                            <div class="text-sm font-bold text-gray-500">Dom</div>
+                            <!-- Placeholder days -->
+                            <div class="p-2 border border-gray-700 rounded-lg text-gray-500">...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Role View (Excel) -->
+                <div id="role-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Vista Rol (Excel)</h3>
+                        <div class="text-gray-400 mb-4">Esta es una tabla de ejemplo que simula una vista de rol para exportar a Excel. (Simulado)</div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left table-auto">
+                                <thead>
+                                    <tr class="bg-gray-800">
+                                        <th class="p-3 text-sm font-semibold text-gray-400 rounded-tl-lg">Guardia</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Lunes</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Martes</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Miércoles</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Jueves</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Viernes</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400">Sábado</th>
+                                        <th class="p-3 text-sm font-semibold text-gray-400 rounded-tr-lg">Domingo</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-700">
+                                    <tr class="hover:bg-gray-800 transition-colors">
+                                        <td class="p-3">Juan Pérez</td>
+                                        <td class="p-3">REGISTRO</td>
+                                        <td class="p-3">ENTRADA PRINCIPAL</td>
+                                        <td class="p-3">SOTANO</td>
+                                        <td class="p-3">LIBRE</td>
+                                        <td class="p-3">HALL BANCARIO</td>
+                                        <td class="p-3">CUBICULO</td>
+                                        <td class="p-3">LIBRE</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-800 transition-colors">
+                                        <td class="p-3">María López</td>
+                                        <td class="p-3">LIBRE</td>
+                                        <td class="p-3">REGISTRO</td>
+                                        <td class="p-3">ENTRADA PRINCIPAL</td>
+                                        <td class="p-3">SOTANO</td>
+                                        <td class="p-3">LIBRE</td>
+                                        <td class="p-3">HALL BANCARIO</td>
+                                        <td class="p-3">CUBICULO</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Notifications view -->
+                <div id="notifications-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Notificaciones</h3>
+                        <div class="flex items-center p-4 bg-gray-800 rounded-lg mb-2">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                            <p class="text-white">Alerta: Juan Pérez no ha marcado su entrada hoy.</p>
+                        </div>
+                        <div class="flex items-center p-4 bg-gray-800 rounded-lg mb-2">
+                            <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+                            <p class="text-white">El horario de la próxima semana está listo para ser revisado.</p>
+                        </div>
+                        <div class="flex items-center p-4 bg-gray-800 rounded-lg mb-2">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <p class="text-white">Se ha aprobado una solicitud de vacaciones de Carlos García.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. User Dashboard -->
+    <div id="user-dashboard" class="hidden flex-1 flex flex-col md:flex-row">
+        <!-- Sidebar (User) -->
+        <aside class="md:w-56 bg-primary-dark text-white p-6 flex flex-col h-full md:h-screen">
+            <div class="flex items-center mb-8">
+                <i class="fas fa-user text-3xl text-accent-orange mr-3"></i>
+                <h2 class="text-xl font-bold">Guardia</h2>
+            </div>
+            <nav>
+                <ul class="space-y-2">
+                    <li><a href="#" data-view="user-calendar" class="nav-link-user flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-calendar-check w-6 mr-3"></i>Mi Calendario</a></li>
+                    <li><a href="#" data-view="user-hours" class="nav-link-user flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-clock w-6 mr-3"></i>Horas Trabajadas</a></li>
+                    <li><a href="#" data-view="user-notifications" class="nav-link-user flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors relative"><i class="fas fa-bell w-6 mr-3"></i>Notificaciones<span class="absolute right-3 top-1 text-xs bg-red-500 rounded-full px-1.5 py-0.5">1</span></a></li>
+                </ul>
+            </nav>
+            <div class="mt-auto pt-8">
+                <button id="logout-user" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-slate-700 transition-colors"><i class="fas fa-sign-out-alt w-6 mr-3"></i>Cerrar Sesión</button>
+            </div>
+        </aside>
+        <!-- Main Content (User) -->
+        <main class="flex-1 p-6 md:p-10 overflow-auto bg-[#1a1836]">
+            <header class="flex items-center justify-between pb-6 border-b border-gray-700">
+                <h1 class="text-3xl font-bold text-white" id="user-greeting"></h1>
+                <div class="text-sm text-gray-500 hidden md:block" id="user-current-date-time"></div>
+            </header>
+            
+            <!-- User content area -->
+            <div id="user-content" class="mt-8 grid gap-8">
+                <!-- User Calendar view (default) -->
+                <div id="user-calendar-view">
+                    <!-- NEW: Weekly Schedule Table -->
+                    <div class="bg-[#1a1836] p-6 rounded-2xl shadow-md border border-gray-700 mb-8">
+                        <h3 class="text-xl font-bold text-white mb-4">Mi Horario Semanal</h3>
+                        <div id="user-weekly-schedule-container" class="overflow-x-auto">
+                            <!-- Weekly schedule table will be generated here -->
+                        </div>
+                    </div>
+
+                    <!-- NEW: Monthly Calendar -->
+                    <div class="bg-[#1a1836] p-6 rounded-2xl shadow-md border border-gray-700">
+                        <div id="monthly-calendar-header" class="flex justify-between items-center mb-4">
+                             <button id="prev-month-btn" class="text-white"><i class="fas fa-chevron-left"></i></button>
+                             <h3 id="month-year-display" class="text-xl font-bold text-white"></h3>
+                             <button id="next-month-btn" class="text-white"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div id="user-monthly-calendar-container" class="grid grid-cols-7 gap-2 text-center">
+                            <!-- Monthly calendar will be generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Hours view -->
+                <div id="user-hours-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Mis Horas de Trabajo</h3>
+                        <div class="text-gray-400">Detalles de las horas trabajadas. (Ejemplo)</div>
+                        <ul class="list-disc list-inside mt-4 text-white">
+                            <li>Semana 1: 40h</li>
+                            <li>Semana 2: 42h (2h extra)</li>
+                            <li>Semana 3: 38h</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- User Notifications view -->
+                <div id="user-notifications-view" class="hidden">
+                    <div class="bg-[#1a1836] p-8 rounded-2xl shadow-md border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Mis Notificaciones</h3>
+                        <div class="flex items-center p-4 bg-gray-800 rounded-lg mb-2">
+                            <i class="fas fa-bell text-accent-orange mr-3"></i>
+                            <p class="text-white">Tu horario de turnos para la próxima semana ha sido actualizado.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Screen elements
+        const loginScreen = document.getElementById('login-screen');
+        const registerScreen = document.getElementById('register-screen');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const userDashboard = document.getElementById('user-dashboard');
+        
+        // Form and auth elements
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const errorMessage = document.getElementById('error-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('toggle-password');
+        const showRegisterLink = document.getElementById('show-register-link');
+        const showLoginLink = document.getElementById('show-login-link');
+        const logoutAdminBtn = document.getElementById('logout-admin');
+        const logoutUserBtn = document.getElementById('logout-user');
+        const googleLoginBtn = document.getElementById('google-login');
+        const linkedinLoginBtn = document.getElementById('linkedin-login');
+        const facebookLoginBtn = document.getElementById('facebook-login');
+        
+        // Admin dashboard elements
+        const adminContent = document.getElementById('admin-content');
+        const adminNavLinks = document.querySelectorAll('.nav-link-admin');
+        const addEventForm = document.getElementById('add-event-form');
+        const eventConfirmation = document.getElementById('event-confirmation');
+        
+        // User dashboard elements
+        const userContent = document.getElementById('user-content');
+        const userNavLinks = document.querySelectorAll('.nav-link-user');
+        const userGreeting = document.getElementById('user-greeting');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+
+        // Data
+        const puestos = {
+            'REGISTRO': 'puesto-registro', 'ENTRADA PRINCIPAL': 'puesto-entrada', 'SOTANO': 'puesto-sotano',
+            'HALL BANCARIO': 'puesto-hall', 'CUBICULO': 'puesto-cubiculo', 'ESCLUSA': 'puesto-esclusa',
+            'CCTV': 'puesto-cctv', 'LIBRE': 'puesto-libre'
+        };
+        const workPuestos = Object.keys(puestos).filter(p => p !== 'LIBRE');
+        const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shiftTimes = ['00:00-08:00', '08:00-16:00', '16:00-24:00'];
+        
+        let guards = [
+            { name: 'Juan Pérez', id: 'juanperez', shifts: [] },
+            { name: 'María López', id: 'marialopez', shifts: [] },
+            { name: 'Carlos García', id: 'carlosgarcia', shifts: [] },
+            { name: 'Ana Fernández', id: 'anafernandez', shifts: [] },
+        ];
+        let specialEvents = []; // Store events added by admin
+        let currentGuard = null;
+        let currentDate = new Date();
+
+        // --- CORE FUNCTIONS ---
+
+        const generateWeeklyScheduleForGuard = (guard) => {
+            const days = [...diasSemana];
+            const workDays = [];
+            const freeDays = [];
+
+            while (freeDays.length < 2) {
+                const randomIndex = Math.floor(Math.random() * days.length);
+                freeDays.push(days.splice(randomIndex, 1)[0]);
+            }
+            workDays.push(...days);
+
+            guard.shifts = workDays.map(day => {
+                const randomPuesto = workPuestos[Math.floor(Math.random() * workPuestos.length)];
+                const randomTime = shiftTimes[Math.floor(Math.random() * shiftTimes.length)];
+                return { day, puesto: randomPuesto, time: randomTime };
+            });
+
+            freeDays.forEach(day => {
+                guard.shifts.push({ day, puesto: 'LIBRE', time: 'Libre' });
+            });
+
+            guard.shifts.sort((a, b) => diasSemana.indexOf(a.day) - diasSemana.indexOf(b.day));
+        };
+
+        const generateAllSchedules = () => guards.forEach(generateWeeklyScheduleForGuard);
+
+        // --- RENDER FUNCTIONS ---
+        
+        const renderAdminShiftCalendar = () => {
+            const container = document.getElementById('shift-calendar-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const headerRow = `<div class="calendar-day-header">Guardia</div>` + 
+                              diasSemana.map(day => `<div class="calendar-day-header">${day.substring(0,3)}</div>`).join('');
+            container.innerHTML += headerRow;
+
+            guards.forEach(guard => {
+                const guardInfo = `<div class="calendar-guard-info"><div class="font-semibold text-white">${guard.name}</div></div>`;
+                container.innerHTML += guardInfo;
+                guard.shifts.forEach(shift => {
+                    const puestoClass = puestos[shift.puesto] || '';
+                    const shiftContent = shift.puesto === 'LIBRE' ? 
+                        `<div class="p-2 text-sm text-gray-400 text-center">${shift.puesto}</div>` :
+                        `<div class="p-2 text-sm text-white font-semibold flex flex-col items-center justify-center h-full">${shift.puesto}<span class="text-xs font-normal">${shift.time}</span></div>`;
+                    container.innerHTML += `<div class="calendar-cell ${puestoClass}">${shiftContent}</div>`;
+                });
+            });
+        };
+
+        const renderUserWeeklyScheduleTable = (guard) => {
+            const container = document.getElementById('user-weekly-schedule-container');
+            if (!container) return;
+            
+            const table = `
+                <table class="w-full text-center text-sm">
+                    <thead>
+                        <tr class="text-gray-400">
+                            ${diasSemana.map(day => `<th class="p-2">${day}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="font-semibold">
+                            ${guard.shifts.map(s => `<td class="p-2">${s.puesto}</td>`).join('')}
+                        </tr>
+                        <tr class="text-gray-300">
+                            ${guard.shifts.map(s => `<td class="p-2">${s.time}</td>`).join('')}
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        };
+
+        const renderUserMonthlyCalendar = () => {
+            const container = document.getElementById('user-monthly-calendar-container');
+            const monthYearDisplay = document.getElementById('month-year-display');
+            if (!container || !monthYearDisplay) return;
+
+            container.innerHTML = '';
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            
+            monthYearDisplay.textContent = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+            // Add day headers
+            diasSemana.map(d => d.substring(0,3)).forEach(day => {
+                container.innerHTML += `<div class="font-bold text-gray-500">${day}</div>`;
+            });
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Monday is 0
+
+            // Add empty cells for days before the 1st
+            for (let i = 0; i < startDay; i++) {
+                container.innerHTML += `<div></div>`;
+            }
+
+            // Add day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const today = new Date();
+                const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                const isPayday = day === 15 || day === 30;
+                
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const event = specialEvents.find(e => e.date === dateStr);
+                
+                let classes = 'monthly-calendar-day p-3 rounded-lg flex items-center justify-center';
+                if (isToday) classes += ' is-today';
+                if (isPayday) classes += ' is-payday';
+                if (event) classes += ' is-event';
+
+                container.innerHTML += `<div class="${classes}" title="${event ? event.title : ''}">${day}</div>`;
+            }
+        };
+
+        // --- UI & EVENT HANDLERS ---
+
+        const showScreen = (screen) => {
+            [loginScreen, registerScreen, adminDashboard, userDashboard].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+        };
+
+        const updateDateTime = () => {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            const formattedDate = now.toLocaleDateString('es-ES', options);
+            document.getElementById('current-date-time').textContent = formattedDate;
+            document.getElementById('user-current-date-time').textContent = formattedDate;
+        };
+
+        const loginGuard = (guard) => {
+            currentGuard = guard;
+            if (!guard.shifts || guard.shifts.length === 0) {
+                generateWeeklyScheduleForGuard(guard);
+            }
+            showScreen(userDashboard);
+            userGreeting.textContent = `Bienvenido, ${guard.name}`;
+            renderUserWeeklyScheduleTable(guard);
+            renderUserMonthlyCalendar();
+        };
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim().toLowerCase();
+            if (email === 'admin') {
+                showScreen(adminDashboard);
+                generateAllSchedules();
+                renderAdminShiftCalendar();
+            } else if (email) {
+                const guard = guards.find(g => g.name.toLowerCase().replace(/\s/g, '').startsWith(email.split('@')[0]));
+                if (guard) loginGuard(guard);
+                else errorMessage.classList.remove('hidden');
+            } else {
+                errorMessage.classList.remove('hidden');
+            }
+        });
+
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('register-name').value.trim();
+            const email = document.getElementById('register-email').value.trim().toLowerCase();
+            if (name && email) {
+                const newGuard = { name, id: email.split('@')[0] + Date.now(), shifts: [] };
+                guards.push(newGuard);
+                loginGuard(newGuard);
+            }
+        });
+        
+        addEventForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('event-date').value;
+            const title = document.getElementById('event-title').value;
+            if (date && title) {
+                specialEvents.push({ date, title });
+                eventConfirmation.classList.remove('hidden');
+                setTimeout(() => eventConfirmation.classList.add('hidden'), 3000);
+                addEventForm.reset();
+                // If a user is logged in, refresh their calendar
+                if (currentGuard) {
+                    renderUserMonthlyCalendar();
+                }
+            }
+        });
+
+        // Navigation and UI toggles
+        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showScreen(registerScreen); });
+        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showScreen(loginScreen); });
+        togglePasswordBtn.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePasswordBtn.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+        logoutAdminBtn.addEventListener('click', () => showScreen(loginScreen));
+        logoutUserBtn.addEventListener('click', () => { currentGuard = null; showScreen(loginScreen); });
+        googleLoginBtn.addEventListener('click', () => loginGuard(guards[2]));
+        linkedinLoginBtn.addEventListener('click', () => loginGuard(guards[3]));
+        facebookLoginBtn.addEventListener('click', () => loginGuard(guards[1]));
+        
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderUserMonthlyCalendar();
+        });
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderUserMonthlyCalendar();
+        });
+
+        // Navigation logic for admin and user dashboards
+        const setupNav = (navLinks, contentEl, defaultViewId) => {
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const viewId = e.currentTarget.getAttribute('data-view') + '-view';
+                    contentEl.querySelectorAll('div[id$="-view"]').forEach(v => v.classList.add('hidden'));
+                    document.getElementById(viewId)?.classList.remove('hidden');
+                    
+                    navLinks.forEach(nav => nav.classList.remove('bg-slate-700'));
+                    e.currentTarget.classList.add('bg-slate-700');
+                    
+                    if (viewId === 'shift-management-view') renderAdminShiftCalendar();
+                });
+            });
+            navLinks[0].click(); // Activate default view
+        };
+
+        setupNav(adminNavLinks, adminContent, 'admin-home-view');
+        setupNav(userNavLinks, userContent, 'user-calendar-view');
+
+        // Initial setup
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+    });
+</script>
+
+</body>
+</html>
